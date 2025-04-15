@@ -5,7 +5,7 @@ class ParticleSwarmOptimizer:
     def __init__(self,
                  model,
                  num_particles=20,
-                 intertia=0.6,
+                 inertia=0.6,
                  cognitive_coeff=2.0,
                  social_coeff=2.0,
                  max_param_value=3.0,
@@ -24,7 +24,7 @@ class ParticleSwarmOptimizer:
 
         # initialize the positions
         self.positions = torch.randn(num_particles, self.total_params, device=device) * 0.1 # because the weights are small
-        self.velocities = torch.randn(self.positions, device=device)
+        self.velocities = torch.randn(self.positions.shape, device=device) * 0.1 # small random velocities
 
         # Best positions
         self.best_positions = self.positions.clone()
@@ -37,7 +37,7 @@ class ParticleSwarmOptimizer:
         self.global_best_score = float('inf')
 
         # Hyperparameters
-        self.inertia = intertia
+        self.inertia = inertia
         self.cognitive_coeff = cognitive_coeff
         self.social_coeff = social_coeff
         self.min_param = min_param_value
