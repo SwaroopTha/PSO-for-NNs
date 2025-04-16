@@ -1,0 +1,4 @@
+Dataset              BPSO      PPSO     SGPSO    PSOGSA       GSA
+iris               96.67%   100.00%    96.67%    90.00%    63.33%
+wine              100.00%   100.00%    97.22%    77.78%    52.78%
+breast_cancer      98.25%    96.49%    98.25%    97.37%    85.09%

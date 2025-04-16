@@ -1,6 +1,7 @@
 # trainers/train_pso.py
 from optim.pso import ParticleSwarmOptimizer
 import matplotlib.pyplot as plt
+import torch
 import torch.nn as nn
 
 def train_pso(
@@ -28,6 +29,23 @@ def train_pso(
         loss = optimizer.step(train_loader, criterion)
         if loss is None:
             break
+
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for x_batch, y_batch in train_loader:
+                x_batch, y_batch = x_batch.to(next(model.parameters()).device), y_batch.to(next(model.parameters()).device)
+                outputs = model(x_batch)
+                predictions = outputs.argmax(dim=1)
+                correct += (predictions == y_batch).sum().item()
+                total += y_batch.size(0)
+        accuracy = correct / total
+
+        if not hasattr(optimizer, 'accuracy_history'):
+            optimizer.accuracy_history = []
+        optimizer.accuracy_history.append(accuracy)
+
         if epoch % 50 == 0:  # Reduced print frequency
             print(f"[{variant}] Epoch {epoch}: Loss = {loss:.4f}")
 
