@@ -72,7 +72,7 @@ class ParticleSwarmOptimizer:
             # Sobol sequence initialization
             adj_particles = 2 ** math.ceil(math.log2(self.num_particles))
             sampler = qmc.Sobol(d=self.total_params, scramble=True)
-            sample = sampler.random(n=self.adj_particles)
+            sample = sampler.random(n=adj_particles)
             self.positions = torch.tensor(2 * sample[:self.num_particles] - 1, 
                                           dtype=torch.float32, 
                                           device=self.device)

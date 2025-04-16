@@ -12,10 +12,9 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    lambda model: MLP(input_dim, hidden_dims, output_dim).to(device)
 
     variants = ['BPSO', 'PPSO', 'SGPSO', "PSOGSA", "GSA"]
-    model_factory = lambda: MLP(input_dim=input_dim, hidden_dims=hidden_dims, output_dim=output_dim)
+    model_factory = lambda: MLP(input_dim=input_dim, hidden_dims=hidden_dims, output_dim=output_dim).to(device)
 
     optimizers = {}
     histories = {}
