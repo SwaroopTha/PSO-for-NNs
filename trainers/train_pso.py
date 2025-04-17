@@ -47,7 +47,7 @@ def train_pso(
         optimizer.accuracy_history.append(accuracy)
 
         if epoch % 50 == 0:  # Reduced print frequency
-            print(f"[{variant}] Epoch {epoch}: Loss = {loss:.4f}")
+            print(f"[{variant}] Epoch {epoch}: Loss = {loss:.4f}, Accuracy = {accuracy:.4f}")
 
     # Plotting
     if plot_convergence:
