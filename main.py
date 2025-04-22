@@ -7,6 +7,8 @@ sys.path.append('./')
 from data.data import load_ucidata
 from trainers.train_pso import train_pso
 from trainers.train_sgd_adam import train_gd  # <-- Import the GD trainer
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import os
 
 def vector_to_state_dict(model, vector):
     state_dict = model.state_dict()
@@ -23,7 +25,8 @@ def vector_to_state_dict(model, vector):
     return new_state_dict
 
 if __name__ == "__main__":
-    datasets = ['iris', 'wine', 'breast_cancer']
+    # datasets = ['iris', 'wine', 'breast_cancer', 'diabetes']
+    datasets = ['digits']
     pso_variants = ['BPSO', 'PPSO', 'SGPSO', 'PSOGSA', 'GSA']
     # pso_variants = []
     gd_variants = ['SGD', 'Adam']
@@ -34,6 +37,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     accuracy_table = {}
+
+    os.makedirs("confusion_matrices", exist_ok=True)
 
     for dataset_name in datasets:
         print(f"\n=== Running on dataset: {dataset_name.upper()} ===")
@@ -46,7 +51,7 @@ if __name__ == "__main__":
             model = model_factory().to(device)
 
             if variant in pso_variants:
-                optimizer, best_params = train_pso(
+                optimizer, best_params, accuracy_history = train_pso(
                     model,
                     train_loader,
                     criterion,
@@ -73,19 +78,49 @@ if __name__ == "__main__":
             model.eval()
             correct = 0
             total = 0
+            all_preds = []
+            all_labels = []
+
             with torch.no_grad():
                 for x_batch, y_batch in test_loader:
                     x_batch, y_batch = x_batch.to(device), y_batch.to(device)
                     outputs = model(x_batch)
                     predictions = outputs.argmax(dim=1)
+                    all_preds.extend(predictions.cpu().numpy())
+                    all_labels.extend(y_batch.cpu().numpy())
                     correct += (predictions == y_batch).sum().item()
                     total += y_batch.size(0)
+
             final_accuracy = correct / total
             accuracy_table[dataset_name][variant] = final_accuracy
+
+            # Confusion matrix as percentage (row-normalized)
+            cm = confusion_matrix(all_labels, all_preds)
+            cm_normalized = cm.astype('float') / cm.sum(axis=1, keepdims=True)  # normalize by true label count
+
+            fig, ax = plt.subplots(figsize=(8, 8))  # Increase figure size
+            disp = ConfusionMatrixDisplay(confusion_matrix=cm_normalized)
+            disp.plot(
+                cmap='Blues',
+                values_format=".2%",
+                ax=ax,
+                colorbar=False
+            )
+            ax.set_title(f"{dataset_name.capitalize()} - {variant} Confusion Matrix (%)", fontsize=14)
+            ax.tick_params(axis='x', labelrotation=45, labelsize=10)
+            ax.tick_params(axis='y', labelsize=10)
+            plt.tight_layout()
+            plt.savefig(f"confusion_matrices/cm_{dataset_name}_{variant}.png", dpi=300, bbox_inches='tight')
+            plt.close()
+
+
 
             # Store history for plotting
             cpu_history = [h.item() if torch.is_tensor(h) else h for h in history]
             histories[variant] = cpu_history
+            if 'accuracy_histories' not in locals():
+                accuracy_histories = {}
+            accuracy_histories[variant] = accuracy_history
 
         # Plot convergence
         plt.figure(figsize=(10, 6))
@@ -100,19 +135,14 @@ if __name__ == "__main__":
         plt.savefig(f'loss_plot_{dataset_name}.png', dpi=300, bbox_inches='tight')
         plt.close()
 
-    # Accuracy Table
-    header = ["Dataset"] + all_variants
-    rows = []
-    for dataset, accs in accuracy_table.items():
-        row = [dataset] + [f"{accs[v]*100:.2f}%" for v in all_variants]
-        rows.append(row)
-
-    print("\n=== Final Accuracy Table ===")
-    print("{:<15}{}".format("Dataset", "".join([f"{v:>10}" for v in all_variants])))
-    for row in rows:
-        print("{:<15}{}".format(row[0], "".join([f"{val:>10}" for val in row[1:]])))
-
-    with open("final_accuracy_table.txt", "w") as f:
-        f.write("{:<15}{}\n".format("Dataset", "".join([f"{v:>10}" for v in all_variants])))
-        for row in rows:
-            f.write("{:<15}{}\n".format(row[0], "".join([f"{val:>10}" for val in row[1:]])))
+    plt.figure(figsize=(10, 6))
+    for variant, acc_history in accuracy_histories.items():
+        plt.plot(acc_history, label=variant, alpha=0.8, linewidth=2)
+    plt.title(f'{dataset_name.capitalize()} - PSO Variants Accuracy', fontsize=14)
+    plt.xlabel('Iteration', fontsize=12)
+    plt.ylabel('Accuracy', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
+    plt.tight_layout()
+    plt.savefig(f'pso_accuracy_{dataset_name}.png', dpi=300, bbox_inches='tight')
+    plt.close()

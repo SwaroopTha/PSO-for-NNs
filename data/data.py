@@ -1,4 +1,4 @@
-from sklearn.datasets import load_iris, load_wine, load_breast_cancer
+from sklearn.datasets import load_iris, load_wine, load_breast_cancer, load_digits, load_diabetes
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -16,6 +16,12 @@ def load_ucidata(name):
         data = load_wine()
     elif name == 'breast_cancer':
         data = load_breast_cancer()
+    elif name == 'digits':
+        data = load_digits()
+    elif name == 'diabetes':
+        data = load_diabetes()
+    else:
+        raise ValueError(f"Unknown dataset name: {name}")
 
     X, y = data.data, data.target
     X = MinMaxScaler(feature_range=(-1, 1)).fit_transform(X)

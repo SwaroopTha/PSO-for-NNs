@@ -57,4 +57,4 @@ def train_pso(
         plt.title(f'{variant} Training Convergence')
         plt.show()
     
-    return optimizer, optimizer.global_best_position  # Best found parameters
+    return optimizer, optimizer.global_best_position, optimizer.accuracy_history  # Best found parameters
