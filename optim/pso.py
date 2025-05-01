@@ -8,6 +8,7 @@ class ParticleSwarmOptimizer:
     def __init__(self,
                  model,
                  variant="BPSO", # [BPSO, SGPSO, GSA, PSOGSA, PPSO]
+                 config=None,
                  num_particles=50,
                  max_iter=500,
                  device='cuda' if torch.cuda.is_available() else 'cpu'):
@@ -20,13 +21,13 @@ class ParticleSwarmOptimizer:
         self.current_iter = 0
         self.history = []
 
-        self._setup_variant_parameters()
+        self._setup_variant_parameters(config)
         self._initialize_particles()
 
         self.inertia = self.params["inertia_range"][0] 
 
 
-    def _setup_variant_parameters(self):
+    def _setup_variant_parameters(self, config=None):
         self.params = {
             "cognitive_coeff": 1.5,
             "social_coeff": 1.5,
@@ -36,12 +37,15 @@ class ParticleSwarmOptimizer:
         }
 
         if self.variant == "PPSO":
-            self.params.update({
-                "cognitive_coeff": 1.6,
-                "social_coeff": 1.7,
-                "inertia_range": (0.4, 0.9),
-                "use_sobol": True,
-            })
+            if config is not None:
+                self.params.update(config)
+            else:
+                self.params.update({
+                    "cognitive_coeff": 1.6,
+                    "social_coeff": 1.7,
+                    "inertia_range": (0.4, 0.9),
+                    "use_sobol": True,
+                })
         elif self.variant == "SGPSO":
             self.params.update({
                 "c3": 0.5,
@@ -102,7 +106,7 @@ class ParticleSwarmOptimizer:
                 (self.params["inertia_range"][0] - self.params["inertia_range"][1]) * progress
             
     def _compute_gsa_foces(self):
-        distances = torch.cdist(self.positions, self.positions) + 1e-10  # Avoid division by zero
+        distances = torch.cdist(self.positions, self.positions) + 1e-10
         force = self.params["G0"] * (self.masses.view(-1, 1) * self.masses) / distances
         position_diffs = self.positions.unsqueeze(1) - self.positions.unsqueeze(0)
         net_force = torch.sum(force.unsqueeze(-1) * position_diffs, dim=1)
@@ -175,7 +179,7 @@ class ParticleSwarmOptimizer:
         # Update positions
         self.velocities = self._update_velocities()
         self.positions += self.velocities
-        self.positions.clamp_(-3.0, 3.0)  # Paper uses [-1,1] but we match their code
+        self.positions.clamp_(-3.0, 3.0)  # Paper uses [-1,1]
         
         self.history.append(self.global_best_score)
         self.current_iter += 1

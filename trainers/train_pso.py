@@ -2,24 +2,37 @@
 from optim.pso import ParticleSwarmOptimizer
 import matplotlib.pyplot as plt
 import torch
+import time
+from collections import defaultdict
 import torch.nn as nn
+
+
+
+
 
 def train_pso(
     model, 
-    train_loader, 
+    train_loader,
     criterion,
     variant="BPSO",
     num_particles=50,
     num_iterations=500,
-    plot_convergence=True
+    plot_convergence=True,
+    config=None
 ):
+    
+    device = next(model.parameters()).device
+    metrics = defaultdict(list)
+    start_time = time.time()
 
     # Initialize the appropriate optimizer variant
     optimizer = ParticleSwarmOptimizer(
         model=model,
         variant=variant,
         num_particles=num_particles,
-        max_iter=num_iterations
+        max_iter=num_iterations,
+        config=config,
+        device=device,
     )
 
     # print(optimizer.inertia)
@@ -35,7 +48,7 @@ def train_pso(
         total = 0
         with torch.no_grad():
             for x_batch, y_batch in train_loader:
-                x_batch, y_batch = x_batch.to(next(model.parameters()).device), y_batch.to(next(model.parameters()).device)
+                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
                 outputs = model(x_batch)
                 predictions = outputs.argmax(dim=1)
                 correct += (predictions == y_batch).sum().item()
