@@ -7,11 +7,8 @@ from collections import defaultdict
 import torch.nn as nn
 
 
-
-
-
 def train_pso(
-    model, 
+    model,
     train_loader,
     criterion,
     variant="BPSO",
@@ -20,10 +17,11 @@ def train_pso(
     plot_convergence=True,
     config=None
 ):
-    
+
     device = next(model.parameters()).device
     metrics = defaultdict(list)
     start_time = time.time()
+    iteration_times = []
 
     # Initialize the appropriate optimizer variant
     optimizer = ParticleSwarmOptimizer(
@@ -36,10 +34,15 @@ def train_pso(
     )
 
     # print(optimizer.inertia)
-    
+
     # Training loop
     for epoch in range(num_iterations):
+        iter_start_time = time.time()
         loss = optimizer.step(train_loader, criterion)
+        iter_end_time = time.time()
+        iteration_time = iter_end_time - iter_start_time
+        iteration_times.append(iteration_time)
+
         if loss is None:
             break
 
@@ -60,7 +63,14 @@ def train_pso(
         optimizer.accuracy_history.append(accuracy)
 
         if epoch % 50 == 0:  # Reduced print frequency
-            print(f"[{variant}] Epoch {epoch}: Loss = {loss:.4f}, Accuracy = {accuracy:.4f}")
+            print(f"[{variant}] Epoch {epoch}: Loss = {loss:.4f}, Accuracy = {accuracy:.4f}, Iteration Time = {iteration_time:.4f} sec")
+
+    end_time = time.time()
+    total_training_time = end_time - start_time
+    average_iteration_time = sum(iteration_times) / len(iteration_times) if iteration_times else 0
+
+    print(f"[{variant}] Total Training Time: {total_training_time:.2f} sec")
+    print(f"[{variant}] Average Time per Iteration: {average_iteration_time:.4f} sec")
 
     # Plotting
     if plot_convergence:
@@ -69,5 +79,5 @@ def train_pso(
         plt.ylabel('Loss')
         plt.title(f'{variant} Training Convergence')
         plt.show()
-    
+
     return optimizer, optimizer.global_best_position, optimizer.accuracy_history  # Best found parameters
