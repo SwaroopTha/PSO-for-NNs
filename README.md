@@ -1,4 +1,4 @@
-# PSO
+# PSO for Neural Network Training
 
 To run main experiments:
 ```
